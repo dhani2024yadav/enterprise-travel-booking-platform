@@ -2,48 +2,23 @@ const GOOGLE_SHEETS_ENDPOINT =
   'https://script.google.com/macros/s/AKfycbwM7E204sA6H48_dGt14lZspFoRGwDiiEgXJxoOxnB8ZADepzF_0sMOMgRXGfIm3S4k/exec';
 
 export async function submitToGoogleSheets(data: Record<string, string>, endpoint: string = GOOGLE_SHEETS_ENDPOINT) {
-  const iframeName = `google-sheets-submit-${Date.now()}`;
-  const iframe = document.createElement('iframe');
-  const form = document.createElement('form');
-
-  iframe.name = iframeName;
-  iframe.style.display = 'none';
-
-  form.action = endpoint;
-  form.method = 'POST';
-  form.target = iframeName;
-  form.style.display = 'none';
-
+  const urlEncoded = new URLSearchParams();
   Object.entries({
     ...data,
     submittedAt: new Date().toISOString(),
-  }).forEach(([name, value]) => {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = name;
-    input.value = value;
-    form.appendChild(input);
+  }).forEach(([key, value]) => {
+    urlEncoded.append(key, value);
   });
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      cleanup();
-      reject(new Error('Google Sheets submission timed out.'));
-    }, 10000);
-
-    function cleanup() {
-      window.clearTimeout(timeout);
-      iframe.remove();
-      form.remove();
-    }
-
-    iframe.addEventListener('load', () => {
-      cleanup();
-      resolve();
-    });
-
-    document.body.appendChild(iframe);
-    document.body.appendChild(form);
-    form.submit();
+  // Google Apps Script requires mode: 'no-cors' to prevent CORS preflight blocks.
+  // The request is sent and executed successfully on the server side, even though
+  // the browser receives an opaque response.
+  await fetch(endpoint, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: urlEncoded,
   });
 }
