@@ -1,7 +1,7 @@
 const GOOGLE_SHEETS_ENDPOINT =
-  'https://script.google.com/macros/s/AKfycbykyfSc32ZQ4TvfGUmpLIMJPhj4cs_c7Tz8PHOy46QZP7iNGaJ8WMpTN038pus1WYGn/exec';
+  'https://script.google.com/macros/s/AKfycbwM7E204sA6H48_dGt14lZspFoRGwDiiEgXJxoOxnB8ZADepzF_0sMOMgRXGfIm3S4k/exec';
 
-export async function submitToGoogleSheets(data: Record<string, string>) {
+export async function submitToGoogleSheets(data: Record<string, string>, endpoint: string = GOOGLE_SHEETS_ENDPOINT) {
   const iframeName = `google-sheets-submit-${Date.now()}`;
   const iframe = document.createElement('iframe');
   const form = document.createElement('form');
@@ -9,7 +9,7 @@ export async function submitToGoogleSheets(data: Record<string, string>) {
   iframe.name = iframeName;
   iframe.style.display = 'none';
 
-  form.action = GOOGLE_SHEETS_ENDPOINT;
+  form.action = endpoint;
   form.method = 'POST';
   form.target = iframeName;
   form.style.display = 'none';
