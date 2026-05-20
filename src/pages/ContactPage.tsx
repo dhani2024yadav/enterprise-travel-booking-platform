@@ -1,15 +1,38 @@
 import { useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle, MessageCircle } from 'lucide-react';
 import { useScrollToTop } from '../hooks/useScrollToTop';
+import { submitToGoogleSheets } from '../utils/googleSheets';
 
 export default function ContactPage() {
   useScrollToTop();
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 5000);
+    setError('');
+    setIsSubmitting(true);
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      await submitToGoogleSheets({
+        formType: 'Contact Message',
+        name: String(formData.get('name') || ''),
+        phone: String(formData.get('phone') || ''),
+        email: String(formData.get('email') || ''),
+        subject: String(formData.get('subject') || ''),
+        message: String(formData.get('message') || ''),
+      });
+      setSubmitted(true);
+      e.currentTarget.reset();
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch {
+      setError('Something went wrong. Please try again or message us on WhatsApp.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -92,23 +115,28 @@ export default function ContactPage() {
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                      <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {error}
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                        <input type="text" required placeholder="Your name" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                        <input type="text" name="name" required placeholder="Your name" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-                        <input type="tel" required placeholder="Your phone number" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                        <input type="tel" name="phone" required placeholder="Your phone number" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                      <input type="email" placeholder="your@email.com" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+                      <input type="email" name="email" placeholder="your@email.com" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                      <select className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-600">
+                      <select name="subject" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-600">
                         <option value="">Select a topic</option>
                         <option>Tour Package Inquiry</option>
                         <option>Transportation Booking</option>
@@ -121,13 +149,14 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
-                      <textarea required rows={5} placeholder="Tell us about your travel plans or query..." className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
+                      <textarea name="message" required rows={5} placeholder="Tell us about your travel plans or query..." className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" />
                     </div>
                     <button
                       type="submit"
-                      className="bg-primary-500 hover:bg-primary-600 text-white px-8 py-3.5 rounded-xl font-bold text-sm transition shadow-lg shadow-primary-200 flex items-center gap-2"
+                      disabled={isSubmitting}
+                      className="bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:shadow-none text-white px-8 py-3.5 rounded-xl font-bold text-sm transition shadow-lg shadow-primary-200 flex items-center gap-2"
                     >
-                      <Send className="w-4 h-4" /> Send Message
+                      <Send className="w-4 h-4" /> {isSubmitting ? 'Sending...' : 'Send Message'}
                     </button>
                   </form>
                 )}

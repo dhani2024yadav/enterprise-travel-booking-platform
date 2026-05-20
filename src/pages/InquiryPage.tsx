@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Send, CheckCircle, Phone, Shield, Clock, Star, MessageCircle } from 'lucide-react';
 import { useScrollToTop } from '../hooks/useScrollToTop';
+import { submitToGoogleSheets } from '../utils/googleSheets';
 
 interface InquiryPageProps {
   onNavigate: (page: string) => void;
@@ -9,6 +10,8 @@ interface InquiryPageProps {
 export default function InquiryPage({ onNavigate }: InquiryPageProps) {
   useScrollToTop();
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -25,9 +28,22 @@ export default function InquiryPage({ onNavigate }: InquiryPageProps) {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      await submitToGoogleSheets({
+        formType: 'Travel Inquiry',
+        ...form,
+      });
+      setSubmitted(true);
+    } catch {
+      setError('Something went wrong. Please try again or message us on WhatsApp.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -85,6 +101,12 @@ export default function InquiryPage({ onNavigate }: InquiryPageProps) {
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-black/5 border border-gray-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Tell Us About Your Trip</h3>
+
+                {error && (
+                  <div className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                   <div>
@@ -155,9 +177,10 @@ export default function InquiryPage({ onNavigate }: InquiryPageProps) {
                   </p>
                   <button
                     type="submit"
-                    className="bg-primary-500 hover:bg-primary-600 text-white px-8 py-3.5 rounded-xl font-bold text-sm transition shadow-lg shadow-primary-200 flex items-center gap-2 whitespace-nowrap"
+                    disabled={isSubmitting}
+                    className="bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:shadow-none text-white px-8 py-3.5 rounded-xl font-bold text-sm transition shadow-lg shadow-primary-200 flex items-center gap-2 whitespace-nowrap"
                   >
-                    <Send className="w-4 h-4" /> Submit Inquiry
+                    <Send className="w-4 h-4" /> {isSubmitting ? 'Submitting...' : 'Submit Inquiry'}
                   </button>
                 </div>
               </form>
